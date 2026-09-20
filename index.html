@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SoC 旗舰平台数据库 - 对比分析系统</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+/* ═══════════════ RESET & VARIABLES ═══════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0f1117;
+  --bg2: #1a1d27;
+  --bg3: #242836;
+  --bg4: #2e3347;
+  --border: #353a4f;
+  --text: #e4e6f0;
+  --text2: #9da3b8;
+  --accent: #6c5ce7;
+  --accent2: #a29bfe;
+  --green: #00b894;
+  --red: #e17055;
+  --orange: #fdcb6e;
+  --blue: #74b9ff;
+  --pink: #fd79a8;
+  --apple: #a29bfe;
+  --qualcomm: #74b9ff;
+  --mtk: #00b894;
+  --xring: #fdcb6e;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+html { font-size: 14px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+a { color: var(--accent2); text-decoration: none; }
+button { cursor: pointer; font-family: inherit; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border); }
+
+/* ═══════════════ HEADER ═══════════════ */
+.header {
+  background: linear-gradient(135deg, var(--bg2) 0%, #1e1535 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+  position: sticky; top: 0; z-index: 100;
+}
+.header-inner {
+  max-width: 1440px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 64px;
+}
+.logo {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 1.3rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent2), var(--blue));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.logo-icon { font-size: 1.8rem; -webkit-text-fill-color: initial; }
+nav { display: flex; gap: 4px; }
+nav button {
+  background: none; border: none; color: var(--text2);
+  padding: 8px 18px; border-radius: 8px; font-size: 0.95rem;
+  transition: all 0.2s;
+}
+nav button:hover { color: var(--text); background: var(--bg3); }
+nav button.active {
+  color: #fff; background: var(--accent);
+  box-shadow: 0 2px 12px rgba(108,92,231,0.4);
+}
+
+/* ═══════════════ LAYOUT ═══════════════ */
+.container { max-width: 1440px; margin: 0 auto; padding: 24px; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* ═══════════════ CARDS ═══════════════ */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px;
+  box-shadow: var(--shadow); transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+.card-title {
+  font-size: 1.1rem; font-weight: 600; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ═══════════════ GRID ═══════════════ */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+
+/* ═══════════════ FILTERS ═══════════════ */
+.filters {
+  display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;
+  align-items: center; padding: 16px 20px;
+  background: var(--bg2); border-radius: var(--radius); border: 1px solid var(--border);
+}
+.filter-group { display: flex; align-items: center; gap: 8px; }
+.filter-group label { font-size: 0.85rem; color: var(--text2); white-space: nowrap; }
+select, input[type="text"], input[type="number"] {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 14px; border-radius: 8px;
+  font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+}
+select:focus, input:focus { border-color: var(--accent); }
+select { min-width: 140px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 20px; border-radius: 8px; font-size: 0.9rem;
+  border: none; transition: all 0.2s; font-weight: 500;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #5b4bd5; box-shadow: 0 4px 16px rgba(108,92,231,0.4); }
+.btn-outline {
+  background: transparent; color: var(--accent2);
+  border: 1px solid var(--accent);
+}
+.btn-outline:hover { background: var(--accent); color: #fff; }
+.btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+
+/* ═══════════════ BADGE / TAG ═══════════════ */
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 600;
+}
+.badge-apple { background: rgba(162,155,254,0.15); color: var(--apple); }
+.badge-qualcomm { background: rgba(116,185,255,0.15); color: var(--qualcomm); }
+.badge-mtk { background: rgba(0,184,148,0.15); color: var(--mtk); }
+.badge-xring { background: rgba(253,203,110,0.15); color: var(--xring); }
+
+.chip-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 8px; font-size: 0.85rem;
+  background: var(--bg3); border: 1px solid var(--border);
+  cursor: pointer; transition: all 0.2s;
+}
+.chip-tag:hover { border-color: var(--accent); }
+.chip-tag.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip-tag .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+
+/* ═══════════════ TABLE ═══════════════ */
+.spec-table { width: 100%; border-collapse: collapse; }
+.spec-table th, .spec-table td {
+  padding: 12px 16px; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.spec-table th {
+  background: var(--bg3); color: var(--text2);
+  font-weight: 600; font-size: 0.85rem; text-transform: uppercase;
+  letter-spacing: 0.5px; position: sticky; top: 0;
+}
+.spec-table tr:hover td { background: rgba(108,92,231,0.05); }
+.spec-table td.highlight { background: rgba(108,92,231,0.1); font-weight: 600; }
+.table-wrapper { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+
+/* ═══════════════ CHIP CARD (DB) ═══════════════ */
+.chip-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+  transition: all 0.3s; cursor: pointer;
+}
+.chip-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.4); border-color: var(--accent); }
+.chip-card-header {
+  padding: 20px; position: relative;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.chip-card-header::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.chip-card[data-brand="apple"] .chip-card-header::before { background: var(--apple); }
+.chip-card[data-brand="qualcomm"] .chip-card-header::before { background: var(--qualcomm); }
+.chip-card[data-brand="mtk"] .chip-card-header::before { background: var(--mtk); }
+.chip-card[data-brand="xring"] .chip-card-header::before { background: var(--xring); }
+.chip-card-name { font-size: 1.15rem; font-weight: 700; }
+.chip-card-gen { font-size: 0.8rem; color: var(--text2); margin-top: 2px; }
+.chip-card-body { padding: 0 20px 20px; }
+.chip-card-specs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-top: 12px;
+}
+.spec-item { display: flex; flex-direction: column; }
+.spec-item-label { font-size: 0.72rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.spec-item-value { font-size: 0.9rem; font-weight: 600; }
+.chip-card-benchmarks {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);
+}
+.bench-item { text-align: center; }
+.bench-item-label { font-size: 0.7rem; color: var(--text2); }
+.bench-item-value { font-size: 1.05rem; font-weight: 700; color: var(--accent2); }
+.chip-card-actions {
+  padding: 12px 20px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px;
+}
+
+/* ═══════════════ STAT BOXES ═══════════════ */
+.stat-box {
+  text-align: center; padding: 20px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.stat-box-value {
+  font-size: 2.2rem; font-weight: 800;
+  background: linear-gradient(135deg, var(--accent2), var(--blue));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.stat-box-label { font-size: 0.85rem; color: var(--text2); margin-top: 4px; }
+
+/* ═══════════════ CHART CONTAINER ═══════════════ */
+.chart-container {
+  position: relative; height: 400px; padding: 16px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.chart-container canvas { max-height: 100%; }
+
+/* ═══════════════ COMPARE PAGE ═══════════════ */
+.compare-selector {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px;
+  padding: 20px; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+.compare-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.compare-result { margin-top: 24px; }
+.diff-up { color: var(--green); }
+.diff-down { color: var(--red); }
+.diff-same { color: var(--text2); }
+
+/* ═══════════════ DETAIL MODAL ═══════════════ */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 200;
+  justify-content: center; align-items: flex-start;
+  padding: 40px 20px; overflow-y: auto;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; width: 100%; max-width: 900px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 24px; border-bottom: 1px solid var(--border);
+}
+.modal-header h2 { font-size: 1.4rem; }
+.modal-close {
+  background: var(--bg3); border: none; color: var(--text);
+  width: 36px; height: 36px; border-radius: 50%;
+  font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { background: var(--red); }
+.modal-body { padding: 24px; }
+
+/* ═══════════════ TABS ═══════════════ */
+.tabs { display: flex; gap: 2px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+.tab-btn {
+  background: none; border: none; color: var(--text2);
+  padding: 10px 20px; font-size: 0.9rem; font-weight: 500;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: all 0.2s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ═══════════════ TOOLTIP ═══════════════ */
+.tooltip-wrap { position: relative; }
+.tooltip-wrap .tip {
+  display: none; position: absolute; bottom: calc(100% + 8px);
+  left: 50%; transform: translateX(-50%);
+  background: var(--bg4); color: var(--text); padding: 6px 12px;
+  border-radius: 6px; font-size: 0.78rem; white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10;
+}
+.tooltip-wrap:hover .tip { display: block; }
+
+/* ═══════════════ RESPONSIVE ═══════════════ */
+@media (max-width: 1024px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .header-inner { flex-direction: column; height: auto; padding: 12px; gap: 8px; }
+  nav { flex-wrap: wrap; justify-content: center; }
+  .filters { flex-direction: column; align-items: stretch; }
+  .chip-card-benchmarks { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════ MISC ═══════════════ */
+.section-title {
+  font-size: 1.4rem; font-weight: 700; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title .icon { font-size: 1.6rem; }
+.empty-state {
+  text-align: center; padding: 60px 20px; color: var(--text2);
+}
+.empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+.platform-legend {
+  display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text2); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+.text-center { text-align: center; }
+.text-sm { font-size: 0.85rem; }
+.text-muted { color: var(--text2); }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.gap-12 { gap: 12px; }
+.hidden { display: none !important; }
+.show { display: block !important; }
+
+/* ═══════════════ ANIMATION ═══════════════ */
+.fade-in { animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">⚡</span>
+      <span>SoC 旗舰平台数据库</span>
+    </div>
+    <nav id="mainNav">
+      <button class="active" data-page="overview">📊 总览</button>
+      <button data-page="database">📱 芯片库</button>
+      <button data-page="compare">⚖️ 对比分析</button>
+      <button data-page="efficiency">⚡ 能效分析</button>
+      <button data-page="timeline">📅 世代演进</button>
+    </nav>
+  </div>
+</header>
+
+<!-- ═══════════════ OVERVIEW PAGE ═══════════════ -->
+<div class="container">
+<div id="page-overview" class="page active">
+  <div class="grid-4 mb-24" id="statBoxes"></div>
+  <div class="grid-2 mb-24">
+    <div class="card">
+      <div class="card-title">🏆 各平台旗舰性能排名 (GB6 单核)</div>
+      <div class="chart-container"><canvas id="chartOverviewPerf"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">⚡ 能效对比 (GB6 单核/瓦)</div>
+      <div class="chart-container"><canvas id="chartOverviewEff"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔬 最新旗舰规格速览</div>
+    <div class="table-wrapper">
+      <table class="spec-table" id="latestFlagshipTable"></table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ DATABASE PAGE ═══════════════ -->
+<div id="page-database" class="page">
+  <div class="filters">
+    <div class="filter-group">
+      <label>平台:</label>
+      <select id="filterBrand">
+        <option value="all">全部平台</option>
+        <option value="apple">Apple</option>
+        <option value="qualcomm">Qualcomm 高通</option>
+        <option value="mtk">MediaTek 天玑</option>
+        <option value="xring">XRing 玄戒</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>制程:</label>
+      <select id="filterProcess">
+        <option value="all">全部制程</option>
+        <option value="3">3nm</option>
+        <option value="4">4nm</option>
+        <option value="5">5nm</option>
+        <option value="7">7nm</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>年份:</label>
+      <select id="filterYear">
+        <option value="all">全部年份</option>
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+        <option value="2022">2022</option>
+        <option value="2021">2021</option>
+        <option value="2020">2020</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>排序:</label>
+      <select id="sortBy">
+        <option value="year-desc">年份 (新→旧)</option>
+        <option value="year-asc">年份 (旧→新)</option>
+        <option value="sc-desc">单核性能 ↓</option>
+        <option value="mc-desc">多核性能 ↓</option>
+        <option value="gpu-desc">GPU 性能 ↓</option>
+        <option value="eff-desc">能效比 ↓</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <input type="text" id="searchChip" placeholder="🔍 搜索芯片名称..." style="width:200px;">
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()">重置</button>
+  </div>
+  <div class="grid-auto" id="chipGrid"></div>
+</div>
+
+<!-- ═══════════════ COMPARE PAGE ═══════════════ -->
+<div id="page-compare" class="page">
+  <div class="card mb-24">
+    <div class="card-title">⚖️ 选择对比芯片 (最多6个)</div>
+    <div class="compare-selector">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;width:100%;">
+        <select id="compareAdd" style="flex:1;min-width:200px;">
+          <option value="">+ 添加芯片到对比...</option>
+        </select>
+        <button class="btn btn-primary" onclick="addToCompare()">添加</button>
+        <button class="btn btn-outline" onclick="clearCompare()">清空</button>
+      </div>
+      <div class="compare-chips" id="compareChips"></div>
+    </div>
+  </div>
+  <div id="compareResult"></div>
+</div>
+
+<!-- ═══════════════ EFFICIENCY PAGE ═══════════════ -->
+<div id="page-efficiency" class="page">
+  <div class="card mb-24">
+    <div class="card-title">⚡ 性能/功耗 散点图 — 气泡大小代表GPU性能</div>
+    <div class="chart-container" style="height:500px;"><canvas id="chartScatter"></canvas></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">📊 各代能效比演进 (GB6 SC/W)</div>
+      <div class="chart-container"><canvas id="chartEffTrend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔬 同代能效横向对比</div>
+      <div class="chart-container"><canvas id="chartEffBar"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TIMELINE PAGE ═══════════════ -->
+<div id="page-timeline" class="page">
+  <div class="card mb-24">
+    <div class="card-title">📅 旗舰SoC性能世代演进</div>
+    <div class="chart-container" style="height:450px;"><canvas id="chartTimeline"></canvas></div>
+  </div>
+  <div class="card mb-24">
+    <div class="card-title">🚀 GPU性能世代演进</div>
+    <div class="chart-container" style="height:450px;"><canvas id="chartTimelineGPU"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 世代数据明细</div>
+    <div class="table-wrapper">
+      <table class="spec-table" id="timelineTable"></table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════ DETAIL MODAL ═══════════════ -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">芯片详情</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// DATA: SoC 旗舰平台数据库
+// ═══════════════════════════════════════════════
+const SOC_DATA = [
+  // ─────── Apple A-Series ───────
+  {
+    id: 'apple-a14', name: 'Apple A14 Bionic', brand: 'apple', brandName: 'Apple',
+    year: 2020, process: '5nm (N5)', transistors: '118亿',
+    cpu: {
+      arch: 'Firestorm + Icestorm',
+      config: '2P + 4E',
+      prime: { name: 'Firestorm', freq: '3.1 GHz', cache: '8MB L2' },
+      perf: { name: 'Firestorm', freq: '1.8 GHz', cache: '4MB L2' },
+      l3: '16MB SLC',
+      desc: '首款5nm手机SoC，2个高性能Firestorm核+4个高效Icestorm核'
+    },
+    gpu: { name: 'Apple 自研 4核', cores: 4, api: 'Metal 2', desc: '自研GPU 4核心' },
+    npu: { name: 'Neural Engine', cores: 16, tops: 11 },
+    memory: { type: 'LPDDR4X', bandwidth: '34.1 GB/s' },
+    benchmarks: { gb6_sc: 1590, gb6_mc: 4180, gpu: 15200, antutu: 728000 },
+    power: { tdp: 6.5, idle: 1.2 },
+    efficiency: { scPerW: 244.6, mcPerW: 643.1 },
+    dieSize: '~88 mm² (TechInsights拆解)', pkgSize: '~12.7×11.0 mm (估算)',
+    devices: 'iPhone 12 系列, iPad Air 4'
+  },
+  {
+    id: 'apple-a15', name: 'Apple A15 Bionic', brand: 'apple', brandName: 'Apple',
+    year: 2021, process: '5nm (N5P)', transistors: '150亿',
+    cpu: {
+      arch: 'Avalanche + Blizzard',
+      config: '2P + 4E',
+      prime: { name: 'Avalanche', freq: '3.23 GHz', cache: '12MB L2' },
+      perf: { name: 'Blizzard', freq: '2.0 GHz', cache: '4MB L2' },
+      l3: '32MB SLC',
+      desc: 'Avalanche高性能核+Blizzard效率核，L2缓存翻倍至12MB'
+    },
+    gpu: { name: 'Apple 自研 5核', cores: 5, api: 'Metal 2', desc: 'GPU升级至5核心(Pro/Max版本)' },
+    npu: { name: 'Neural Engine', cores: 16, tops: 15.8 },
+    memory: { type: 'LPDDR4X', bandwidth: '34.1 GB/s' },
+    benchmarks: { gb6_sc: 1740, gb6_mc: 4900, gpu: 18800, antutu: 839000 },
+    power: { tdp: 6.0, idle: 1.0 },
+    efficiency: { scPerW: 290.0, mcPerW: 816.7 },
+    dieSize: '~107.7 mm² (TechInsights拆解)', pkgSize: '~13.2×11.4 mm (估算)',
+    devices: 'iPhone 13 系列, iPad mini 6'
+  },
+  {
+    id: 'apple-a16', name: 'Apple A16 Bionic', brand: 'apple', brandName: 'Apple',
+    year: 2022, process: '4nm (N4P)', transistors: '160亿',
+    cpu: {
+      arch: 'Everest + Sawtooth',
+      config: '2P + 4E',
+      prime: { name: 'Everest', freq: '3.46 GHz', cache: '16MB L2' },
+      perf: { name: 'Sawtooth', freq: '2.02 GHz', cache: '4MB L2' },
+      l3: '24MB SLC',
+      desc: 'Everest+Sawtooth架构，频率提升至3.46GHz'
+    },
+    gpu: { name: 'Apple 自研 5核', cores: 5, api: 'Metal 3', desc: '5核心GPU，支持Metal 3' },
+    npu: { name: 'Neural Engine', cores: 16, tops: 17 },
+    memory: { type: 'LPDDR5', bandwidth: '51.2 GB/s' },
+    benchmarks: { gb6_sc: 1940, gb6_mc: 5400, gpu: 21200, antutu: 955000 },
+    power: { tdp: 6.5, idle: 1.1 },
+    efficiency: { scPerW: 298.5, mcPerW: 830.8 },
+    dieSize: '~112.75 mm² (TechInsights拆解)', pkgSize: '~13.5×11.5 mm (估算)',
+    devices: 'iPhone 14 Pro/Pro Max'
+  },
+  {
+    id: 'apple-a17pro', name: 'Apple A17 Pro', brand: 'apple', brandName: 'Apple',
+    year: 2023, process: '3nm (N3B)', transistors: '190亿',
+    cpu: {
+      arch: 'Coll + Sawtooth',
+      config: '2P + 4E',
+      prime: { name: 'Coll', freq: '3.78 GHz', cache: '16MB L2' },
+      perf: { name: 'Sawtooth', freq: '2.11 GHz', cache: '4MB L2' },
+      l3: '24MB SLC',
+      desc: '首款3nm手机芯片，CPU主频提升至3.78GHz'
+    },
+    gpu: { name: 'Apple 自研 6核', cores: 6, api: 'Metal 3', desc: '6核心GPU，支持硬件光线追踪' },
+    npu: { name: 'Neural Engine', cores: 16, tops: 35 },
+    memory: { type: 'LPDDR5', bandwidth: '51.2 GB/s' },
+    benchmarks: { gb6_sc: 2160, gb6_mc: 5800, gpu: 27100, antutu: 1145000 },
+    power: { tdp: 7.0, idle: 1.0 },
+    efficiency: { scPerW: 308.6, mcPerW: 828.6 },
+    dieSize: '~102.4 mm² (TechInsights拆解)', pkgSize: '~13.0×11.2 mm (估算)',
+    devices: 'iPhone 15 Pro/Pro Max'
+  },
+  {
+    id: 'apple-a18pro', name: 'Apple A18 Pro', brand: 'apple', brandName: 'Apple',
+    year: 2024, process: '3nm (N3E)', transistors: '200亿',
+    cpu: {
+      arch: 'Coll (2nd gen) + Sawtooth',
+      config: '2P + 4E',
+      prime: { name: 'Coll (2nd)', freq: '4.05 GHz', cache: '16MB L2' },
+      perf: { name: 'Sawtooth', freq: '2.2 GHz', cache: '4MB L2' },
+      l3: '24MB SLC',
+      desc: '第二代3nm，主频突破4GHz，AI性能大幅提升'
+    },
+    gpu: { name: 'Apple 自研 6核', cores: 6, api: 'Metal 3', desc: '6核心GPU，光线追踪性能提升' },
+    npu: { name: 'Neural Engine', cores: 16, tops: 35 },
+    memory: { type: 'LPDDR5X', bandwidth: '68.3 GB/s' },
+    benchmarks: { gb6_sc: 2400, gb6_mc: 6450, gpu: 30500, antutu: 1320000 },
+    power: { tdp: 7.5, idle: 1.0 },
+    efficiency: { scPerW: 320.0, mcPerW: 860.0 },
+    dieSize: '~107 mm² (估算)', pkgSize: '~13.0×11.2 mm (估算)',
+    devices: 'iPhone 16 Pro/Pro Max'
+  },
+  {
+    id: 'apple-a19pro', name: 'Apple A19 Pro', brand: 'apple', brandName: 'Apple',
+    year: 2025, process: '3nm (N3P)', transistors: '~210亿',
+    cpu: {
+      arch: 'Coll (3rd gen) + Sawtooth (2nd)',
+      config: '2P + 4E',
+      prime: { name: 'Coll (3rd)', freq: '4.30 GHz', cache: '16MB L2' },
+      perf: { name: 'Sawtooth (2nd)', freq: '2.35 GHz', cache: '4MB L2' },
+      l3: '32MB SLC',
+      desc: '第三代3nm优化，主频达4.3GHz，SLC缓存增至32MB'
+    },
+    gpu: { name: 'Apple 自研 6核', cores: 6, api: 'Metal 4', desc: '6核心GPU，支持Metal 4，光追性能翻倍' },
+    npu: { name: 'Neural Engine', cores: 16, tops: 45 },
+    memory: { type: 'LPDDR5X', bandwidth: '75 GB/s' },
+    benchmarks: { gb6_sc: 2680, gb6_mc: 7200, gpu: 35200, antutu: 1520000 },
+    power: { tdp: 7.5, idle: 0.9 },
+    efficiency: { scPerW: 357.3, mcPerW: 960.0 },
+    dieSize: '~105 mm² (估算)', pkgSize: '~13.0×11.0 mm (估算)',
+    devices: 'iPhone 17 Pro/Pro Max'
+  },
+  {
+    id: 'apple-a20', name: 'Apple A20 Pro', brand: 'apple', brandName: 'Apple',
+    year: 2026, process: '2nm (TSMC N2) — 首款2nm手机芯片', transistors: '~250亿+',
+    cpu: {
+      arch: '自研架构 (Apple官方称"Super Cores")',
+      config: '2 Super Cores + 4 Efficiency Cores',
+      prime: { name: 'Super Core (自研)', freq: '~4.6 GHz (推测)', cache: '16MB L2' },
+      perf: { name: 'Efficiency Core (自研)', freq: '~2.5 GHz (推测)', cache: '4MB L2' },
+      l3: '32MB SLC (推测)',
+      desc: 'Apple官方specs: "6-core CPU with 2 super cores and 4 efficiency cores"，首次使用Super Cores命名，集成蒸汽冷却系统'
+    },
+    gpu: { name: 'Apple 自研 7核 (含Neural Accelerators)', cores: 7, api: 'Metal 5', desc: 'Apple官方specs: "7-core GPU with Neural Accelerators"，硬件光追' },
+    npu: { name: '双16核 Neural Engine (Dual)', cores: 32, tops: 58 },
+    memory: { type: 'LPDDR5X', bandwidth: '85 GB/s' },
+    benchmarks: { gb6_sc: 3050, gb6_mc: 8200, gpu: 45800, antutu: 1850000 },
+    power: { tdp: 7.0, idle: 0.8 },
+    efficiency: { scPerW: 435.7, mcPerW: 1171.4 },
+    dieSize: '~90-105 mm² (N2密度更高，估算)', pkgSize: '待拆解确认',
+    devices: 'iPhone 18 Pro/Pro Max'
+  },
+
+  // ─────── Qualcomm Snapdragon 8 Series ───────
+  {
+    id: 'qcom-888', name: 'Snapdragon 888', brand: 'qualcomm', brandName: 'Qualcomm',
+    year: 2021, process: '5nm (Samsung 5LPE)', transistors: '100亿',
+    cpu: {
+      arch: 'Cortex-X1 + A78 + A55 (Kryo 680)',
+      config: '1×X1 + 3×A78 + 4×A55',
+      prime: { name: 'Cortex-X1', freq: '2.84 GHz', cache: '1MB L2' },
+      perf: { name: 'Cortex-A78', freq: '2.4 GHz', cache: '512KB L2' },
+      l3: '4MB L3 + 3MB SLC',
+      desc: '首款Cortex-X1超大核SoC，三星5LPE工艺，发热问题受广泛批评'
+    },
+    gpu: { name: 'Adreno 660', cores: null, api: 'Vulkan 1.1', desc: 'Adreno 660 GPU' },
+    npu: { name: 'Hexagon 780', cores: null, tops: 26 },
+    memory: { type: 'LPDDR5 @3200MHz', bandwidth: '51.2 GB/s' },
+    benchmarks: { gb6_sc: 1150, gb6_mc: 3300, gpu: 14800, antutu: 750000 },
+    power: { tdp: 10.0, idle: 1.8 },
+    efficiency: { scPerW: 115.0, mcPerW: 330.0 },
+    dieSize: '~112 mm² (10.5×10.7 mm, TechInsights拆解)', pkgSize: '~154 mm² (12.4×12.4 mm BGA)',
+    devices: '小米11, Galaxy S21, OnePlus 9'
+  },
+  {
+    id: 'qcom-8gen1', name: 'Snapdragon 8 Gen 1', brand: 'qualcomm', brandName: 'Qualcomm',
+    year: 2022, process: '4nm (Samsung 4LPE)', transistors: '~120亿',
+    cpu: {
+      arch: 'Cortex-X2 + A710 + A510 (Kryo, Armv9)',
+      config: '1×X2 + 3×A710 + 4×A510',
+      prime: { name: 'Cortex-X2', freq: '3.0 GHz', cache: '1MB L2' },
+      perf: { name: 'Cortex-A710', freq: '2.5 GHz', cache: '512KB L2' },
+      l3: '6MB L3 + 4MB SLC',
+      desc: '首款Armv9骁龙，Cortex-X2超大核，三星4LPE工艺，功耗发热仍存问题'
+    },
+    gpu: { name: 'Adreno 730', cores: null, api: 'Vulkan 1.1', desc: 'Adreno 730 GPU，较Adreno 660提升~30%' },
+    npu: { name: 'Hexagon (第7代AI Engine)', cores: null, tops: 27 },
+    memory: { type: 'LPDDR5 @4200MHz', bandwidth: '51.2 GB/s' },
+    benchmarks: { gb6_sc: 1350, gb6_mc: 3800, gpu: 17800, antutu: 980000 },
+    power: { tdp: 12.0, idle: 1.8 },
+    efficiency: { scPerW: 112.5, mcPerW: 316.7 },
+    dieSize: '~119 mm² (TechInsights拆解)', pkgSize: '~154 mm² (12.4×12.4 mm BGA)',
+    devices: '小米12, Galaxy S22'
+  },
+  {
+    id: 'qcom-8gen2', name: 'Snapdragon 8 Gen 2', brand: 'qualcomm', brandName: 'Qualcomm',
+    year: 2023, process: '4nm (TSMC N4)', transistors: '~130亿',
+    cpu: {
+      arch: 'Cortex-X3 + A715 + A710 + A510 (Kryo)',
+      config: '1×X3@3.36G + 2×A715@2.8G + 2×A710@2.8G + 3×A510@2.02G',
+      prime: { name: 'Cortex-X3 (超级大核)', freq: '3.36 GHz', cache: '1MB L2' },
+      perf: { name: 'Cortex-A715', freq: '2.8 GHz', cache: '512KB L2' },
+      l3: '8MB L3 + 6MB SLC',
+      desc: '回归台积电4nm(N4P)，1+2+2+3四丛集架构，保留A710兼容32位，被广泛认为是"神U"'
+    },
+    gpu: { name: 'Adreno 740', cores: null, api: 'Vulkan 1.3', desc: 'Adreno 740 GPU，支持硬件光线追踪' },
+    npu: { name: 'Hexagon', cores: null, tops: 45 },
+    memory: { type: 'LPDDR5X @4200MHz', bandwidth: '67.2 GB/s' },
+    benchmarks: { gb6_sc: 2000, gb6_mc: 5300, gpu: 24800, antutu: 1280000 },
+    power: { tdp: 11.0, idle: 1.5 },
+    efficiency: { scPerW: 181.8, mcPerW: 481.8 },
+    dieSize: '11.346×10.792 mm (~122 mm², with scribe line)', pkgSize: '15.6×14.0×0.56 mm (~218 mm²)',
+    devices: '小米13 Pro, Galaxy S23, OnePlus 11'
+  },
+  {
+    id: 'qcom-8gen3', name: 'Snapdragon 8 Gen 3', brand: 'qualcomm', brandName: 'Qualcomm',
+    year: 2024, process: '4nm (TSMC N4P)', transistors: '~140亿',
+    cpu: {
+      arch: 'Cortex-X4 + A720 + A520 (Kryo, 基于hunter/hayes)',
+      config: '1×X4@3.72G + 5×A720@3.0G + 2×A520@2.0G',
+      prime: { name: 'Cortex-X4 (超级大核)', freq: '3.72 GHz', cache: '2MB L2' },
+      perf: { name: 'Cortex-A720 (大核)', freq: '3.0 GHz', cache: '512KB L2' },
+      l3: '12MB L3 + 6MB SLC',
+      desc: '最后款ARM公版核心骁龙旗舰，1+5+2布局，X4超级大核@3.72GHz（非3.3G），5×A720@3.0G，2×A520@2.0G'
+    },
+    gpu: { name: 'Adreno 750 (6核自研)', cores: 6, api: 'Vulkan 1.3', desc: '6×Adreno 750（高通自研），光追进一步提升' },
+    npu: { name: 'Hexagon', cores: null, tops: 45 },
+    memory: { type: 'LPDDR5X @8533MHz with ECC', bandwidth: '~136 GB/s (4×16bit)' },
+    benchmarks: { gb6_sc: 2300, gb6_mc: 7200, gpu: 28600, antutu: 1520000 },
+    power: { tdp: 13.0, idle: 1.5 },
+    efficiency: { scPerW: 176.9, mcPerW: 553.8 },
+    dieSize: '12.78×10.70 mm (~137 mm², with scribe line)', pkgSize: '16.5×14.0×0.56 mm (~231 mm²)',
+    devices: '小米14 Pro, Galaxy S24 Ultra, OnePlus 12'
+  },
+  {
+    id: 'qcom-8elite', name: 'Snapdragon 8 Elite', brand: 'qualcomm', brandName: 'Qualcomm',
+    year: 2025, process: '3nm (TSMC N3E)', transistors: '~160亿',
+    cpu: {
+      arch: 'Qualcomm Nuvia 自研架构 (第2代)',
+      config: '2×性能核@3.6G + 6×能效核@2.4G (全大核，无小核)',
+      prime: { name: 'Nuvia 性能核 (自研)', freq: '3.6 GHz', cache: '12MB L2' },
+      perf: { name: 'Nuvia 能效核 (自研)', freq: '2.4 GHz', cache: '12MB L2' },
+      l3: '24MB SLC',
+      desc: '架构里程碑——自研Nuvia核心取代ARM公版，全大核2+6，支持LP5T 9600，集成UWB'
+    },
+    gpu: { name: 'Adreno 830', cores: null, api: 'Vulkan 1.3', desc: 'Adreno 830 GPU，较Gen3提升~40%' },
+    npu: { name: 'Hexagon NPU', cores: null, tops: 75 },
+    memory: { type: 'LPDDR5X @8533MHz with ECC', bandwidth: '~136 GB/s (4×16bit)' },
+    benchmarks: { gb6_sc: 3200, gb6_mc: 9800, gpu: 33800, antutu: 1750000 },
+    power: { tdp: 15.0, idle: 1.3 },
+    efficiency: { scPerW: 213.3, mcPerW: 653.3 },
+    dieSize: '未公布', pkgSize: '15.95×14.0×0.55 mm (~223 mm²)',
+    devices: '小米15 Pro, Galaxy S25 Ultra, OnePlus 13'
+  },
+  {
+    id: 'qcom-8elite2', name: 'Snapdragon 8 Elite 2 (未确认)', brand: 'qualcomm', brandName: 'Qualcomm',
+    year: 2025, process: '2nm (TSMC N2) 或 3nm增强版 (未确认)', transistors: '未公布',
+    cpu: {
+      arch: 'Qualcomm Oryon (第3代，推测)',
+      config: '2P + 6E (全自研，推测)',
+      prime: { name: 'Oryon 3rd (推测)', freq: '~4.5 GHz (推测)', cache: '12MB L2' },
+      perf: { name: 'Oryon 3rd (推测)', freq: '~3.6 GHz (推测)', cache: '12MB L2' },
+      l3: '24MB SLC (推测)',
+      desc: '【规格未确认】第三代Oryon架构，截至2026年9月尚未正式发布，以上为行业传闻和供应链泄露'
+    },
+    gpu: { name: 'Adreno (下一代，未确认)', cores: null, api: 'Vulkan 1.4', desc: '预计进一步提升光追和AI图形' },
+    npu: { name: 'Hexagon (下一代，未确认)', cores: null, tops: 100 },
+    memory: { type: 'LPDDR5X 或更新标准', bandwidth: '未公布' },
+    benchmarks: { gb6_sc: 3400, gb6_mc: 10200, gpu: 39500, antutu: 1980000 },
+    power: { tdp: 15.0, idle: 1.2 },
+    efficiency: { scPerW: 226.7, mcPerW: 680.0 },
+    dieSize: '未公布', pkgSize: '未公布',
+    devices: '预计2025年底或2026年初发布'
+  },
+
+  // ─────── MediaTek Dimensity ───────
+  {
+    id: 'mtk-d9000', name: 'MTK 天玑9000', brand: 'mtk', brandName: 'MediaTek',
+    year: 2021, process: '4nm (TSMC N4)', transistors: '~120亿',
+    cpu: {
+      arch: 'Cortex-X2 + A710 + A510',
+      config: '1×X2@3.05G + 3×A710@2.85G + 4×A510@1.8G',
+      prime: { name: 'Cortex-X2 (超大核)', freq: '3.05 GHz', cache: '1MB L2' },
+      perf: { name: 'Cortex-A710 (大核)', freq: '2.85 GHz', cache: '512KB L2' },
+      l3: '8MB L3 + 6MB SLC',
+      desc: '联发科首款旗舰SoC，台积电4nm'
+    },
+    gpu: { name: 'Mali-G710 MC10', cores: 10, api: 'Vulkan 1.1', desc: 'Mali-G710 10核GPU' },
+    npu: { name: 'APU 590', cores: null, tops: 22 },
+    memory: { type: 'LPDDR5X', bandwidth: '60.2 GB/s' },
+    benchmarks: { gb6_sc: 1320, gb6_mc: 4500, gpu: 17200, antutu: 1020000 },
+    power: { tdp: 8.5, idle: 1.4 },
+    efficiency: { scPerW: 155.3, mcPerW: 529.4 },
+    dieSize: '120 mm²', pkgSize: '210 mm² (14.8×14.2 mm)',
+    devices: 'vivo X80 Pro, OPPO Find X5 Pro'
+  },
+  {
+    id: 'mtk-d9200', name: 'MTK 天玑9200', brand: 'mtk', brandName: 'MediaTek',
+    year: 2022, process: '4nm (TSMC N4P)', transistors: '~130亿',
+    cpu: {
+      arch: 'Cortex-X3 + A715 + A510',
+      config: '1×X3 + 3×A715 + 4×A510',
+      prime: { name: 'Cortex-X3', freq: '3.05 GHz', cache: '1MB L2' },
+      perf: { name: 'Cortex-A715', freq: '2.85 GHz', cache: '512KB L2' },
+      l3: '8MB L3 + 6MB SLC',
+      desc: 'Cortex-X3超大核，GPU升级至Immortalis'
+    },
+    gpu: { name: 'Immortalis-G715 MC11', cores: 11, api: 'Vulkan 1.3', desc: '首款移动端光追GPU' },
+    npu: { name: 'APU 690', cores: null, tops: 35 },
+    memory: { type: 'LPDDR5X', bandwidth: '68.3 GB/s' },
+    benchmarks: { gb6_sc: 1720, gb6_mc: 5100, gpu: 21500, antutu: 1260000 },
+    power: { tdp: 8.0, idle: 1.3 },
+    efficiency: { scPerW: 215.0, mcPerW: 637.5 },
+    dieSize: '118 mm²', pkgSize: '210 mm² (14.8×14.2 mm)',
+    devices: 'vivo X90 Pro+, OPPO Find X6 Pro'
+  },
+  {
+    id: 'mtk-d9300', name: 'MTK 天玑9300', brand: 'mtk', brandName: 'MediaTek',
+    year: 2023, process: '4nm (TSMC N4P)', transistors: '~140亿',
+    cpu: {
+      arch: 'Cortex-X4 + A720 (全大核)',
+      config: '1×X4@3.25G + 3×X4@2.85G + 4×A720@2.0G',
+      prime: { name: 'Cortex-X4 (超大核)', freq: '3.25 GHz', cache: '1MB L2' },
+      perf: { name: 'Cortex-X4 (超大核)', freq: '2.85 GHz', cache: '512KB L2' },
+      l3: '8MB L3 + 10MB SLC',
+      desc: '革命性全大核架构，无小核设计，4个X4超大核+4个A720大核'
+    },
+    gpu: { name: 'Immortalis-G720 MC12 @1.3GHz', cores: 12, api: 'Vulkan 1.3', desc: '12×Immortalis-G720 MC12 @1.3GHz' },
+    npu: { name: 'APU 790', cores: null, tops: 46 },
+    memory: { type: 'LPDDR5X', bandwidth: '77 GB/s' },
+    benchmarks: { gb6_sc: 2280, gb6_mc: 7500, gpu: 26500, antutu: 1580000 },
+    power: { tdp: 9.0, idle: 1.5 },
+    efficiency: { scPerW: 253.3, mcPerW: 833.3 },
+    dieSize: '12.842×10.653 mm (~137 mm²)', pkgSize: '15.9×14.0×0.68 mm (~223 mm²)',
+    devices: 'vivo X100 Pro, OPPO Find X7 Ultra'
+  },
+  {
+    id: 'mtk-d9400', name: 'MTK 天玑9400', brand: 'mtk', brandName: 'MediaTek',
+    year: 2024, process: '3nm (TSMC N3E)', transistors: '~160亿',
+    cpu: {
+      arch: 'Cortex-X5 + Cortex-X4 + A730',
+      config: '1×X5@3.4G + 3×X4@2.85G + 4×A730@2.0G',
+      prime: { name: 'Cortex-X5 (超大核)', freq: '3.4 GHz', cache: '2MB L2' },
+      perf: { name: 'Cortex-X4 (超大核)', freq: '2.85 GHz', cache: '1MB L2' },
+      l3: '12MB L3',
+      desc: '首款3nm天玑旗舰，1×X5超大核@3.4G + 3×X4超大核@2.85G + 4×A730@2.0G，全大核架构'
+    },
+    gpu: { name: 'Immortalis-G925 MC12', cores: 12, api: 'Vulkan 1.4', desc: 'Immortalis-G925 12核GPU，光追性能翻倍' },
+    npu: { name: 'APU 890', cores: null, tops: 73 },
+    memory: { type: 'LPDDR5X', bandwidth: '85 GB/s' },
+    benchmarks: { gb6_sc: 2800, gb6_mc: 8800, gpu: 32500, antutu: 1780000 },
+    power: { tdp: 8.5, idle: 1.2 },
+    efficiency: { scPerW: 329.4, mcPerW: 1035.3 },
+    dieSize: '135 mm²', pkgSize: '225 mm² (15.0×15.0 mm)',
+    devices: 'vivo X200 Pro, OPPO Find X8 Ultra'
+  },
+  {
+    id: 'mtk-d9500', name: 'MTK 天玑9500', brand: 'mtk', brandName: 'MediaTek',
+    year: 2025, process: '3nm (TSMC N3P)', transistors: '~200亿',
+    cpu: {
+      arch: '第3代全大核 (C1系列自研核心)',
+      config: '1×C1-Ultra + 3×C1-Premium + 4×C1-Pro',
+      prime: { name: 'C1-Ultra (自研)', freq: '4.21 GHz', cache: '2MB L2' },
+      perf: { name: 'C1-Premium (自研)', freq: '3.50 GHz', cache: '1MB L2' },
+      l3: '16MB L3 + 10MB SLC',
+      desc: '首款Arm C系列自研核心，超大核突破4GHz，全大核架构1+3+4配置'
+    },
+    gpu: { name: 'Mali-G1 Ultra MC12', cores: 12, api: 'Vulkan 1.4', desc: 'Mali-G1 Ultra 12核GPU，支持光追' },
+    npu: { name: 'NPU 990 + CIM NPU', cores: null, tops: 50 },
+    memory: { type: 'LPDDR5X 10667', bandwidth: '~85 GB/s' },
+    benchmarks: { gb6_sc: 3200, gb6_mc: 9800, gpu: 38200, antutu: 1950000 },
+    power: { tdp: 8.8, idle: 1.1 },
+    efficiency: { scPerW: 363.6, mcPerW: 1113.6 },
+    dieSize: '~110-120 mm² (N3P)', pkgSize: 'Fan-out封装，尺寸未公开',
+    devices: '2025下半年旗舰'
+  },
+  {
+    id: 'mtk-d9600pro', name: 'MTK 天玑9600 Pro', brand: 'mtk', brandName: 'MediaTek',
+    year: 2026, process: '2nm (TSMC N2) — 首波2nm手机芯片', transistors: '~220-250亿',
+    cpu: {
+      arch: '第4代全大核 (C2系列自研核心)',
+      config: '2×C2-Ultra + 3×C2-Pro + 3×C2-Pro',
+      prime: { name: 'C2-Ultra (自研)', freq: '4.55 GHz', cache: '2MB L2' },
+      perf: { name: 'C2-Pro (自研)', freq: '4.35 GHz', cache: '1MB L2' },
+      l3: '16MB L3 + 10MB SLC',
+      desc: '首发台积电2nm GAA纳米片工艺，第4代全大核2+3+3，大核频率突破4.35GHz，单核能效+37%，多核能效+61%'
+    },
+    gpu: { name: 'Mali-G2 Ultra NX', cores: null, api: 'Vulkan 1.4', desc: '全新GPU架构，峰值性能+27%，能效+24%，光追+18%，支持185+ FPS，硬件OMM光追，神经图形架构GPU-NPU直连' },
+    npu: { name: 'NPU 1090 + CIM NPU 2.0', cores: null, tops: null, desc: '双NPU架构，INT4算力翻倍，每瓦Token生成+55%，LLM Prefill+51%，硬件KV-cache压缩，支持端侧LLM/MoE推理' },
+    memory: { type: 'LPDDR6 10667 + LPDDR5X', bandwidth: '~113 GB/s' },
+    benchmarks: { gb6_sc: 3500, gb6_mc: 10800, gpu: 42500, antutu: 2500000 },
+    power: { tdp: 8.5, idle: 1.0 },
+    efficiency: { scPerW: 411.8, mcPerW: 1270.6 },
+    dieSize: '~100-115 mm²', pkgSize: '~225 mm² (Fan-out封装)',
+    devices: 'OPPO Find X10 Pro Max, vivo X500 Pro Max, Honor Magic 9 Pro Max'
+  },
+
+  // ─────── XRing 玄戒 ───────
+  {
+    id: 'xring-o1', name: '玄戒 O1', brand: 'xring', brandName: 'XRing 玄戒',
+    year: 2025, process: '3nm (TSMC N3E)', transistors: '190亿',
+    cpu: {
+      arch: 'Cortex-X925 + A725 + A520 (ARM公版)',
+      config: '2×X925@3.9G + 4×A725@3.4G + 2×A725@1.9G + 2×A520@1.8G',
+      prime: { name: 'Cortex-X925', freq: '3.9 GHz', cache: '2MB L2' },
+      perf: { name: 'Cortex-A725', freq: '3.4 GHz', cache: '1MB L2' },
+      l3: '未公开',
+      desc: '小米首款自研手机SoC，10核4丛集ARM公版架构，外挂联发科T800基带，首发小米15S Pro'
+    },
+    gpu: { name: 'ARM Immortalis-G925 16核', cores: 16, api: 'Vulkan 1.3', desc: '16核GPU @ 1392MHz，ARM公版（非Imagination）' },
+    npu: { name: '自研NPU 6核', cores: 6, tops: 44 },
+    memory: { type: 'LPDDR5T @4800MHz', bandwidth: '76.8 GB/s' },
+    benchmarks: { gb6_sc: 2910, gb6_mc: 9153, gpu: 25000, antutu: 2535163 },
+    power: { tdp: 8.0, idle: 1.3 },
+    efficiency: { scPerW: 363.8, mcPerW: 1144.1 },
+    dieSize: '114.7 mm²', pkgSize: '未公开',
+    devices: '小米15S Pro, 小米平板7 Ultra'
+  },
+  {
+    id: 'xring-o3', name: '玄戒 O3', brand: 'xring', brandName: 'XRing 玄戒',
+    year: 2026, process: '3nm (TSMC N3P)', transistors: '240亿',
+    cpu: {
+      arch: 'C1系列自研核心 (全大核)',
+      config: '2×C1-Ultra@4.35G + 4×C1-Premium@3.68G + 4×C1-Pro@3.15G',
+      prime: { name: 'C1-Ultra (小米自研)', freq: '4.35 GHz', cache: '2MB L2' },
+      perf: { name: 'C1-Premium (小米自研)', freq: '3.68 GHz', cache: '1MB L2' },
+      l3: '未公开',
+      desc: '小米第二代旗舰SoC，10核全大核自研C1架构，安兔兔522万分安卓最高，外挂联发科T900基带'
+    },
+    gpu: { name: 'ARM Mali-G2 Ultra NX 16核', cores: 16, api: 'Vulkan 1.4', desc: '16核GPU @ 1600MHz，8标准渲染+8 NX神经网络单元，支持神经网络超分和帧生成' },
+    npu: { name: '自研NPU', cores: null, tops: 200 },
+    memory: { type: 'LPDDR6 @5333MHz', bandwidth: '113.8 GB/s' },
+    benchmarks: { gb6_sc: 3699, gb6_mc: 14350, gpu: 45000, antutu: 5220000 },
+    power: { tdp: 9.0, idle: 1.1 },
+    efficiency: { scPerW: 411.0, mcPerW: 1594.4 },
+    dieSize: '133 mm²', pkgSize: '未公开',
+    devices: '小米18 Fold (2026年9月7日上市), 小米平板9 Pro Max'
+  }
+];
+
+// Brand colors mapping
+const BRAND_COLORS = {
+  apple: { bg: 'rgba(162,155,254,0.7)', border: '#a29bfe', label: 'Apple' },
+  qualcomm: { bg: 'rgba(116,185,255,0.7)', border: '#74b9ff', label: 'Qualcomm' },
+  mtk: { bg: 'rgba(0,184,148,0.7)', border: '#00b894', label: 'MediaTek' },
+  xring: { bg: 'rgba(253,203,110,0.7)', border: '#fdcb6e', label: 'XRing' }
+};
+
+const BRAND_ORDER = ['apple', 'qualcomm', 'mtk', 'xring'];
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+let currentPage = 'overview';
+let compareList = [];
+let chartInstances = {};
+
+function navigateTo(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelector(`nav button[data-page="${page}"]`).classList.add('active');
+
+  // Render page-specific content
+  switch(page) {
+    case 'overview': renderOverview(); break;
+    case 'database': renderDatabase(); break;
+    case 'compare': renderComparePage(); break;
+    case 'efficiency': renderEfficiency(); break;
+    case 'timeline': renderTimeline(); break;
+  }
+}
+
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => navigateTo(btn.dataset.page));
+});
+
+// ═══════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════
+function getBadgeClass(brand) {
+  return `badge-${brand}`;
+}
+
+function getBrandColor(brand) {
+  return BRAND_COLORS[brand] || BRAND_COLORS.xring;
+}
+
+function formatNum(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(0) + 'K';
+  return n.toString();
+}
+
+function diffPercent(a, b) {
+  if (!a || !b) return null;
+  return ((a - b) / b * 100).toFixed(1);
+}
+
+function diffClass(diff) {
+  if (diff === null) return 'diff-same';
+  if (diff > 0) return 'diff-up';
+  if (diff < 0) return 'diff-down';
+  return 'diff-same';
+}
+
+function diffArrow(diff) {
+  if (diff === null || diff == 0) return '—';
+  return diff > 0 ? `▲ ${diff}%` : `▼ ${Math.abs(diff)}%`;
+}
+
+function destroyChart(id) {
+  if (chartInstances[id]) {
+    chartInstances[id].destroy();
+    delete chartInstances[id];
+  }
+}
+
+// Chart.js default config
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { labels: { color: '#9da3b8', font: { size: 12 } } },
+    tooltip: {
+      backgroundColor: '#2e3347',
+      titleColor: '#e4e6f0',
+      bodyColor: '#e4e6f0',
+      borderColor: '#353a4f',
+      borderWidth: 1,
+      padding: 12,
+      cornerRadius: 8
+    }
+  },
+  scales: {
+    x: { ticks: { color: '#9da3b8' }, grid: { color: 'rgba(53,58,79,0.5)' } },
+    y: { ticks: { color: '#9da3b8' }, grid: { color: 'rgba(53,58,79,0.5)' } }
+  }
+};
+
+// ═══════════════════════════════════════════════
+// OVERVIEW PAGE
+// ═══════════════════════════════════════════════
+function renderOverview() {
+  // Stat boxes
+  const latest = BRAND_ORDER.map(b => SOC_DATA.filter(s => s.brand === b).sort((a,b) => b.year - a.year)[0]);
+  const avgPerf = Math.round(latest.reduce((s,c) => s + c.benchmarks.gb6_sc, 0) / latest.length);
+  const bestEff = latest.reduce((best, c) => c.efficiency.scPerW > best.efficiency.scPerW ? c : best);
+  const bestPerf = latest.reduce((best, c) => c.benchmarks.gb6_sc > best.benchmarks.gb6_sc ? c : best);
+
+  document.getElementById('statBoxes').innerHTML = `
+    <div class="stat-box fade-in">
+      <div class="stat-box-value">${SOC_DATA.length}</div>
+      <div class="stat-box-label">收录芯片总数</div>
+    </div>
+    <div class="stat-box fade-in">
+      <div class="stat-box-value">${bestPerf.benchmarks.gb6_sc}</div>
+      <div class="stat-box-label">最高单核 (GB6) — ${bestPerf.name}</div>
+    </div>
+    <div class="stat-box fade-in">
+      <div class="stat-box-value">${bestEff.efficiency.scPerW.toFixed(0)}</div>
+      <div class="stat-box-label">最佳能效比 (SC/W) — ${bestEff.name}</div>
+    </div>
+    <div class="stat-box fade-in">
+      <div class="stat-box-value">4</div>
+      <div class="stat-box-label">涵盖平台</div>
+    </div>
+  `;
+
+  // Overview perf chart
+  const latestData = BRAND_ORDER.map(b => SOC_DATA.filter(s => s.brand === b).sort((a,b) => b.year - a.year)[0]);
+  destroyChart('overviewPerf');
+  chartInstances['overviewPerf'] = new Chart(document.getElementById('chartOverviewPerf'), {
+    type: 'bar',
+    data: {
+      labels: latestData.map(c => c.name),
+      datasets: [{
+        label: 'GB6 单核',
+        data: latestData.map(c => c.benchmarks.gb6_sc),
+        backgroundColor: latestData.map(c => getBrandColor(c.brand).bg),
+        borderColor: latestData.map(c => getBrandColor(c.brand).border),
+        borderWidth: 2, borderRadius: 8
+      }]
+    },
+    options: { ...CHART_DEFAULTS, indexAxis: 'y', plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } } }
+  });
+
+  // Overview efficiency chart
+  destroyChart('overviewEff');
+  chartInstances['overviewEff'] = new Chart(document.getElementById('chartOverviewEff'), {
+    type: 'bar',
+    data: {
+      labels: latestData.map(c => c.name),
+      datasets: [{
+        label: 'GB6 SC / W',
+        data: latestData.map(c => c.efficiency.scPerW),
+        backgroundColor: latestData.map(c => getBrandColor(c.brand).bg),
+        borderColor: latestData.map(c => getBrandColor(c.brand).border),
+        borderWidth: 2, borderRadius: 8
+      }]
+    },
+    options: { ...CHART_DEFAULTS, indexAxis: 'y', plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } } }
+  });
+
+  // Latest flagship table
+  const table = document.getElementById('latestFlagshipTable');
+  table.innerHTML = `
+    <thead><tr>
+      <th>芯片</th><th>平台</th><th>制程</th><th>CPU架构</th><th>GPU</th>
+      <th>GB6 单核</th><th>GB6 多核</th><th>GPU分</th><th>NPU (TOPS)</th>
+    </tr></thead>
+    <tbody>${latestData.map(c => `
+      <tr>
+        <td><strong>${c.name}</strong></td>
+        <td><span class="badge ${getBadgeClass(c.brand)}">${c.brandName}</span></td>
+        <td>${c.process}</td>
+        <td>${c.cpu.config}</td>
+        <td>${c.gpu.name}</td>
+        <td>${c.benchmarks.gb6_sc}</td>
+        <td>${c.benchmarks.gb6_mc}</td>
+        <td>${formatNum(c.benchmarks.gpu)}</td>
+        <td>${c.npu.tops}</td>
+      </tr>
+    `).join('')}</tbody>
+  `;
+}
+
+// ═══════════════════════════════════════════════
+// DATABASE PAGE
+// ═══════════════════════════════════════════════
+function renderDatabase() {
+  const brand = document.getElementById('filterBrand').value;
+  const process = document.getElementById('filterProcess').value;
+  const year = document.getElementById('filterYear').value;
+  const sort = document.getElementById('sortBy').value;
+  const search = document.getElementById('searchChip').value.toLowerCase();
+
+  let filtered = [...SOC_DATA];
+
+  if (brand !== 'all') filtered = filtered.filter(c => c.brand === brand);
+  if (process !== 'all') filtered = filtered.filter(c => c.process.includes(process + 'nm'));
+  if (year !== 'all') filtered = filtered.filter(c => c.year === parseInt(year));
+  if (search) filtered = filtered.filter(c => c.name.toLowerCase().includes(search));
+
+  // Sort
+  const [sortKey, sortDir] = sort.split('-');
+  filtered.sort((a, b) => {
+    let va, vb;
+    switch(sortKey) {
+      case 'year': va = a.year; vb = b.year; break;
+      case 'sc': va = a.benchmarks.gb6_sc; vb = b.benchmarks.gb6_sc; break;
+      case 'mc': va = a.benchmarks.gb6_mc; vb = b.benchmarks.gb6_mc; break;
+      case 'gpu': va = a.benchmarks.gpu; vb = b.benchmarks.gpu; break;
+      case 'eff': va = a.efficiency.scPerW; vb = b.efficiency.scPerW; break;
+      default: va = a.year; vb = b.year;
+    }
+    return sortDir === 'desc' ? vb - va : va - vb;
+  });
+
+  const grid = document.getElementById('chipGrid');
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><div>没有找到匹配的芯片</div></div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(c => `
+    <div class="chip-card fade-in" data-brand="${c.brand}" onclick="showDetail('${c.id}')">
+      <div class="chip-card-header">
+        <div>
+          <div class="chip-card-name">${c.name}</div>
+          <div class="chip-card-gen">${c.year} · ${c.process}</div>
+        </div>
+        <span class="badge ${getBadgeClass(c.brand)}">${c.brandName}</span>
+      </div>
+      <div class="chip-card-body">
+        <div class="chip-card-specs">
+          <div class="spec-item">
+            <span class="spec-item-label">CPU</span>
+            <span class="spec-item-value">${c.cpu.config}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-item-label">GPU</span>
+            <span class="spec-item-value">${c.gpu.name}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-item-label">NPU</span>
+            <span class="spec-item-value">${c.npu.tops} TOPS</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-item-label">内存</span>
+            <span class="spec-item-value">${c.memory.type}</span>
+          </div>
+        </div>
+        <div class="chip-card-benchmarks">
+          <div class="bench-item">
+            <div class="bench-item-label">GB6 单核</div>
+            <div class="bench-item-value">${c.benchmarks.gb6_sc}</div>
+          </div>
+          <div class="bench-item">
+            <div class="bench-item-label">GB6 多核</div>
+            <div class="bench-item-value">${c.benchmarks.gb6_mc}</div>
+          </div>
+          <div class="bench-item">
+            <div class="bench-item-label">能效比</div>
+            <div class="bench-item-value">${c.efficiency.scPerW.toFixed(0)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="chip-card-actions">
+        <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); addToCompareById('${c.id}')">+ 对比</button>
+        <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); showDetail('${c.id}')">详情</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function resetFilters() {
+  document.getElementById('filterBrand').value = 'all';
+  document.getElementById('filterProcess').value = 'all';
+  document.getElementById('filterYear').value = 'all';
+  document.getElementById('sortBy').value = 'year-desc';
+  document.getElementById('searchChip').value = '';
+  renderDatabase();
+}
+
+// Filter event listeners
+['filterBrand','filterProcess','filterYear','sortBy'].forEach(id => {
+  document.getElementById(id).addEventListener('change', renderDatabase);
+});
+document.getElementById('searchChip').addEventListener('input', renderDatabase);
+
+// ═══════════════════════════════════════════════
+// DETAIL MODAL
+// ═══════════════════════════════════════════════
+function showDetail(id) {
+  const c = SOC_DATA.find(s => s.id === id);
+  if (!c) return;
+
+  document.getElementById('modalTitle').innerHTML = `
+    <span class="badge ${getBadgeClass(c.brand)}" style="font-size:0.9rem;">${c.brandName}</span>
+    ${c.name}
+  `;
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="specs">规格参数</button>
+      <button class="tab-btn" data-tab="perf">性能数据</button>
+      <button class="tab-btn" data-tab="eff">能效分析</button>
+    </div>
+
+    <div class="tab-content active" data-tab="specs">
+      <div class="grid-2" style="gap:16px;">
+        <div class="card" style="padding:16px;">
+          <div class="card-title" style="font-size:0.95rem;">🔧 基本信息</div>
+          <table class="spec-table">
+            <tr><td>平台</td><td><strong>${c.brandName}</strong></td></tr>
+            <tr><td>发布年份</td><td>${c.year}</td></tr>
+            <tr><td>制程工艺</td><td>${c.process}</td></tr>
+            <tr><td>晶体管数</td><td>${c.transistors}</td></tr>
+            <tr><td>Die Size</td><td>${c.dieSize}</td></tr>
+            <tr><td>Package Size</td><td>${c.pkgSize}</td></tr>
+            <tr><td>搭载设备</td><td>${c.devices}</td></tr>
+          </table>
+        </div>
+        <div class="card" style="padding:16px;">
+          <div class="card-title" style="font-size:0.95rem;">🧠 CPU</div>
+          <table class="spec-table">
+            <tr><td>架构</td><td>${c.cpu.arch}</td></tr>
+            <tr><td>核心配置</td><td>${c.cpu.config}</td></tr>
+            <tr><td>超大核</td><td>${c.cpu.prime.name} @ ${c.cpu.prime.freq}</td></tr>
+            <tr><td>超大核缓存</td><td>${c.cpu.prime.cache}</td></tr>
+            <tr><td>大核</td><td>${c.cpu.perf.name} @ ${c.cpu.perf.freq}</td></tr>
+            <tr><td>L3/SLC</td><td>${c.cpu.l3}</td></tr>
+            <tr><td>说明</td><td style="font-size:0.82rem;color:var(--text2);">${c.cpu.desc}</td></tr>
+          </table>
+        </div>
+        <div class="card" style="padding:16px;">
+          <div class="card-title" style="font-size:0.95rem;">🎮 GPU</div>
+          <table class="spec-table">
+            <tr><td>型号</td><td>${c.gpu.name}</td></tr>
+            ${c.gpu.cores ? `<tr><td>核心数</td><td>${c.gpu.cores}</td></tr>` : ''}
+            <tr><td>图形API</td><td>${c.gpu.api}</td></tr>
+            <tr><td>说明</td><td style="font-size:0.82rem;color:var(--text2);">${c.gpu.desc}</td></tr>
+          </table>
+        </div>
+        <div class="card" style="padding:16px;">
+          <div class="card-title" style="font-size:0.95rem;">🤖 NPU & 内存</div>
+          <table class="spec-table">
+            <tr><td>NPU</td><td>${c.npu.name}</td></tr>
+            <tr><td>AI算力</td><td>${c.npu.tops} TOPS</td></tr>
+            <tr><td>内存类型</td><td>${c.memory.type}</td></tr>
+            <tr><td>内存带宽</td><td>${c.memory.bandwidth}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" data-tab="perf">
+      <div class="grid-4 mb-24">
+        <div class="stat-box">
+          <div class="stat-box-value" style="font-size:1.6rem;">${c.benchmarks.gb6_sc}</div>
+          <div class="stat-box-label">GB6 单核</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-value" style="font-size:1.6rem;">${c.benchmarks.gb6_mc}</div>
+          <div class="stat-box-label">GB6 多核</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-value" style="font-size:1.6rem;">${formatNum(c.benchmarks.gpu)}</div>
+          <div class="stat-box-label">GPU 跑分</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-value" style="font-size:1.6rem;">${formatNum(c.benchmarks.antutu)}</div>
+          <div class="stat-box-label">安兔兔</div>
+        </div>
+      </div>
+      <div class="chart-container" style="height:300px;"><canvas id="detailRadar"></canvas></div>
+    </div>
+
+    <div class="tab-content" data-tab="eff">
+      <div class="grid-3 mb-24">
+        <div class="stat-box">
+          <div class="stat-box-value" style="font-size:1.6rem;">${c.power.tdp}W</div>
+          <div class="stat-box-label">典型功耗 (TDP)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-value" style="font-size:1.6rem;">${c.efficiency.scPerW.toFixed(1)}</div>
+          <div class="stat-box-label">单核能效 (GB6/W)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-value" style="font-size:1.6rem;">${c.efficiency.mcPerW.toFixed(1)}</div>
+          <div class="stat-box-label">多核能效 (GB6/W)</div>
+        </div>
+      </div>
+      <div class="chart-container" style="height:300px;"><canvas id="detailEffChart"></canvas></div>
+    </div>
+  `;
+
+  // Tab switching
+  document.querySelectorAll('#modalBody .tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#modalBody .tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#modalBody .tab-content').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelector(`#modalBody .tab-content[data-tab="${btn.dataset.tab}"]`).classList.add('active');
+      if (btn.dataset.tab === 'perf') renderDetailRadar(c);
+      if (btn.dataset.tab === 'eff') renderDetailEff(c);
+    });
+  });
+
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function renderDetailRadar(c) {
+  destroyChart('detailRadar');
+  const maxSC = 3500, maxMC = 10500, maxGPU = 40000, maxNPU = 100, maxAntutu = 2000000;
+  chartInstances['detailRadar'] = new Chart(document.getElementById('detailRadar'), {
+    type: 'radar',
+    data: {
+      labels: ['单核性能', '多核性能', 'GPU性能', 'AI算力', '安兔兔'],
+      datasets: [{
+        label: c.name,
+        data: [
+          (c.benchmarks.gb6_sc / maxSC * 100).toFixed(0),
+          (c.benchmarks.gb6_mc / maxMC * 100).toFixed(0),
+          (c.benchmarks.gpu / maxGPU * 100).toFixed(0),
+          (c.npu.tops / maxNPU * 100).toFixed(0),
+          (c.benchmarks.antutu / maxAntutu * 100).toFixed(0)
+        ],
+        backgroundColor: getBrandColor(c.brand).bg,
+        borderColor: getBrandColor(c.brand).border,
+        borderWidth: 2, pointRadius: 4
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        r: {
+          beginAtZero: true, max: 100,
+          ticks: { color: '#9da3b8', backdropColor: 'transparent' },
+          grid: { color: 'rgba(53,58,79,0.5)' },
+          pointLabels: { color: '#e4e6f0', font: { size: 12 } }
+        }
+      }
+    }
+  });
+}
+
+function renderDetailEff(c) {
+  destroyChart('detailEffChart');
+  // Compare with same year chips
+  const sameYear = SOC_DATA.filter(s => s.year === c.year);
+  chartInstances['detailEffChart'] = new Chart(document.getElementById('detailEffChart'), {
+    type: 'bar',
+    data: {
+      labels: sameYear.map(s => s.name),
+      datasets: [{
+        label: '单核能效 (GB6/W)',
+        data: sameYear.map(s => s.efficiency.scPerW),
+        backgroundColor: sameYear.map(s => s.id === c.id ? getBrandColor(s.brand).bg : 'rgba(53,58,79,0.6)'),
+        borderColor: sameYear.map(s => s.id === c.id ? getBrandColor(s.brand).border : '#353a4f'),
+        borderWidth: 2, borderRadius: 8
+      }]
+    },
+    options: { ...CHART_DEFAULTS, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } } }
+  });
+}
+
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('open');
+}
+document.getElementById('detailModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('detailModal')) closeModal();
+});
+
+// ═══════════════════════════════════════════════
+// COMPARE PAGE
+// ═══════════════════════════════════════════════
+function renderComparePage() {
+  // Populate dropdown
+  const sel = document.getElementById('compareAdd');
+  if (sel.options.length <= 1) {
+    SOC_DATA.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = `${c.brandName} — ${c.name} (${c.year})`;
+      sel.appendChild(opt);
+    });
+  }
+
+  renderCompareChips();
+  renderCompareResult();
+}
+
+function addToCompare() {
+  const sel = document.getElementById('compareAdd');
+  const id = sel.value;
+  if (!id || compareList.includes(id)) return;
+  if (compareList.length >= 6) { alert('最多选择6个芯片进行对比'); return; }
+  compareList.push(id);
+  sel.value = '';
+  renderCompareChips();
+  renderCompareResult();
+}
+
+function addToCompareById(id) {
+  if (compareList.includes(id)) return;
+  if (compareList.length >= 6) { alert('最多选择6个芯片进行对比'); return; }
+  compareList.push(id);
+  navigateTo('compare');
+}
+
+function removeFromCompare(id) {
+  compareList = compareList.filter(i => i !== id);
+  renderCompareChips();
+  renderCompareResult();
+}
+
+function clearCompare() {
+  compareList = [];
+  renderCompareChips();
+  renderCompareResult();
+}
+
+function renderCompareChips() {
+  const container = document.getElementById('compareChips');
+  container.innerHTML = compareList.map(id => {
+    const c = SOC_DATA.find(s => s.id === id);
+    return `<div class="chip-tag selected">
+      <span class="dot" style="background:${getBrandColor(c.brand).border}"></span>
+      ${c.name}
+      <span style="cursor:pointer;margin-left:4px;" onclick="removeFromCompare('${id}')">✕</span>
+    </div>`;
+  }).join('');
+}
+
+function renderCompareResult() {
+  const container = document.getElementById('compareResult');
+  if (compareList.length < 2) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">⚖️</div><div>请至少选择2个芯片进行对比</div></div>';
+    return;
+  }
+
+  const chips = compareList.map(id => SOC_DATA.find(s => s.id === id));
+  const best = (arr, key) => Math.max(...arr.map(c => key(c)));
+
+  const specs = [
+    { label: '制程工艺', key: c => c.process },
+    { label: '晶体管数', key: c => c.transistors },
+    { label: 'CPU架构', key: c => c.cpu.arch },
+    { label: 'CPU配置', key: c => c.cpu.config },
+    { label: '超大核', key: c => `${c.cpu.prime.name} @ ${c.cpu.prime.freq}` },
+    { label: 'L3/SLC', key: c => c.cpu.l3 },
+    { label: 'GPU', key: c => c.gpu.name },
+    { label: 'NPU', key: c => `${c.npu.name} (${c.npu.tops} TOPS)` },
+    { label: '内存类型', key: c => c.memory.type },
+    { label: '内存带宽', key: c => c.memory.bandwidth }
+  ];
+
+  const benchmarks = [
+    { label: 'GB6 单核', key: c => c.benchmarks.gb6_sc, format: v => v },
+    { label: 'GB6 多核', key: c => c.benchmarks.gb6_mc, format: v => v },
+    { label: 'GPU 跑分', key: c => c.benchmarks.gpu, format: v => formatNum(v) },
+    { label: '安兔兔', key: c => c.benchmarks.antutu, format: v => formatNum(v) },
+    { label: '典型功耗', key: c => c.power.tdp, format: v => v + 'W', lowerBetter: true },
+    { label: '单核能效', key: c => c.efficiency.scPerW, format: v => v.toFixed(1) },
+    { label: '多核能效', key: c => c.efficiency.mcPerW, format: v => v.toFixed(1) }
+  ];
+
+  container.innerHTML = `
+    <div class="card mb-24 fade-in">
+      <div class="card-title">📋 规格参数对比</div>
+      <div class="table-wrapper">
+        <table class="spec-table">
+          <thead><tr>
+            <th>参数</th>
+            ${chips.map(c => `<th><span class="badge ${getBadgeClass(c.brand)}">${c.brandName}</span><br>${c.name}<br><span class="text-muted text-sm">${c.year}</span></th>`).join('')}
+          </tr></thead>
+          <tbody>
+            ${specs.map(s => `<tr>
+              <td><strong>${s.label}</strong></td>
+              ${chips.map(c => `<td>${s.key(c)}</td>`).join('')}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card mb-24 fade-in">
+      <div class="card-title">📊 性能数据对比</div>
+      <div class="table-wrapper">
+        <table class="spec-table">
+          <thead><tr>
+            <th>指标</th>
+            ${chips.map(c => `<th>${c.name}</th>`).join('')}
+            <th>差异</th>
+          </tr></thead>
+          <tbody>
+            ${benchmarks.map(b => {
+              const vals = chips.map(c => b.key(c));
+              const maxVal = b.lowerBetter ? Math.min(...vals) : Math.max(...vals);
+              return `<tr>
+                <td><strong>${b.label}</strong></td>
+                ${chips.map((c, i) => {
+                  const v = b.key(c);
+                  const isHighlight = b.lowerBetter ? v === maxVal : v === maxVal;
+                  return `<td class="${isHighlight ? 'highlight' : ''}">${b.format(v)}</td>`;
+                }).join('')}
+                <td>${(() => {
+                  const max = Math.max(...vals), min = Math.min(...vals);
+                  return `<span class="diff-up">+${((max-min)/min*100).toFixed(1)}%</span>`;
+                })()}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid-2 fade-in">
+      <div class="card">
+        <div class="card-title">📈 性能雷达图</div>
+        <div class="chart-container" style="height:350px;"><canvas id="compareRadar"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 性能柱状图</div>
+        <div class="chart-container" style="height:350px;"><canvas id="compareBar"></canvas></div>
+      </div>
+    </div>
+  `;
+
+  // Render compare charts
+  setTimeout(() => {
+    renderCompareRadar(chips);
+    renderCompareBar(chips);
+  }, 100);
+}
+
+function renderCompareRadar(chips) {
+  destroyChart('compareRadar');
+  const maxSC = 3500, maxMC = 10500, maxGPU = 40000, maxNPU = 100, maxEff = 1200;
+  chartInstances['compareRadar'] = new Chart(document.getElementById('compareRadar'), {
+    type: 'radar',
+    data: {
+      labels: ['单核性能', '多核性能', 'GPU性能', 'AI算力', '能效比'],
+      datasets: chips.map(c => ({
+        label: c.name,
+        data: [
+          (c.benchmarks.gb6_sc / maxSC * 100).toFixed(0),
+          (c.benchmarks.gb6_mc / maxMC * 100).toFixed(0),
+          (c.benchmarks.gpu / maxGPU * 100).toFixed(0),
+          (c.npu.tops / maxNPU * 100).toFixed(0),
+          (c.efficiency.scPerW / maxEff * 100).toFixed(0)
+        ],
+        backgroundColor: getBrandColor(c.brand).bg.replace('0.7', '0.15'),
+        borderColor: getBrandColor(c.brand).border,
+        borderWidth: 2, pointRadius: 4
+      }))
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        r: {
+          beginAtZero: true, max: 100,
+          ticks: { color: '#9da3b8', backdropColor: 'transparent' },
+          grid: { color: 'rgba(53,58,79,0.5)' },
+          pointLabels: { color: '#e4e6f0', font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+function renderCompareBar(chips) {
+  destroyChart('compareBar');
+  chartInstances['compareBar'] = new Chart(document.getElementById('compareBar'), {
+    type: 'bar',
+    data: {
+      labels: chips.map(c => c.name),
+      datasets: [
+        {
+          label: 'GB6 单核',
+          data: chips.map(c => c.benchmarks.gb6_sc),
+          backgroundColor: 'rgba(162,155,254,0.6)', borderColor: '#a29bfe', borderWidth: 1, borderRadius: 6
+        },
+        {
+          label: 'GB6 多核 (÷3)',
+          data: chips.map(c => Math.round(c.benchmarks.gb6_mc / 3)),
+          backgroundColor: 'rgba(116,185,255,0.6)', borderColor: '#74b9ff', borderWidth: 1, borderRadius: 6
+        }
+      ]
+    },
+    options: { ...CHART_DEFAULTS, plugins: { ...CHART_DEFAULTS.plugins, legend: { position: 'top' } } }
+  });
+}
+
+// ═══════════════════════════════════════════════
+// EFFICIENCY PAGE
+// ═══════════════════════════════════════════════
+function renderEfficiency() {
+  // Scatter: Performance vs Power, bubble size = GPU
+  destroyChart('scatter');
+  chartInstances['scatter'] = new Chart(document.getElementById('chartScatter'), {
+    type: 'bubble',
+    data: {
+      datasets: BRAND_ORDER.map(brand => ({
+        label: BRAND_COLORS[brand].label,
+        data: SOC_DATA.filter(c => c.brand === brand).map(c => ({
+          x: c.power.tdp,
+          y: c.benchmarks.gb6_sc,
+          r: Math.max(5, c.benchmarks.gpu / 2500),
+          chip: c.name, year: c.year
+        })),
+        backgroundColor: BRAND_COLORS[brand].bg,
+        borderColor: BRAND_COLORS[brand].border,
+        borderWidth: 2
+      }))
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { title: { display: true, text: '典型功耗 (W)', color: '#9da3b8' }, ticks: { color: '#9da3b8' }, grid: { color: 'rgba(53,58,79,0.5)' } },
+        y: { title: { display: true, text: 'GB6 单核性能', color: '#9da3b8' }, ticks: { color: '#9da3b8' }, grid: { color: 'rgba(53,58,79,0.5)' } }
+      },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        tooltip: {
+          ...CHART_DEFAULTS.plugins.tooltip,
+          callbacks: {
+            label: ctx => {
+              const d = ctx.raw;
+              return `${d.chip} (${d.year}): ${d.y} 分 @ ${d.x}W, GPU ${((d.r - 5) * 2500).toFixed(0)}`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Efficiency trend by brand
+  destroyChart('effTrend');
+  chartInstances['effTrend'] = new Chart(document.getElementById('chartEffTrend'), {
+    type: 'line',
+    data: {
+      labels: [...new Set(SOC_DATA.map(c => c.year))].sort(),
+      datasets: BRAND_ORDER.map(brand => {
+        const brandChips = SOC_DATA.filter(c => c.brand === brand).sort((a,b) => a.year - b.year);
+        return {
+          label: BRAND_COLORS[brand].label,
+          data: brandChips.map(c => ({ x: c.year, y: c.efficiency.scPerW })),
+          borderColor: BRAND_COLORS[brand].border,
+          backgroundColor: BRAND_COLORS[brand].bg,
+          tension: 0.3, pointRadius: 5, pointHoverRadius: 8, borderWidth: 2, fill: false
+        };
+      })
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { type: 'linear', ticks: { color: '#9da3b8', stepSize: 1 }, grid: { color: 'rgba(53,58,79,0.5)' } },
+        y: { title: { display: true, text: 'GB6 SC / W', color: '#9da3b8' }, ticks: { color: '#9da3b8' }, grid: { color: 'rgba(53,58,79,0.5)' } }
+      }
+    }
+  });
+
+  // Latest gen efficiency bar
+  const latestByBrand = BRAND_ORDER.map(b => SOC_DATA.filter(c => c.brand === b).sort((a,b) => b.year - a.year)[0]);
+  destroyChart('effBar');
+  chartInstances['effBar'] = new Chart(document.getElementById('chartEffBar'), {
+    type: 'bar',
+    data: {
+      labels: latestByBrand.map(c => c.name),
+      datasets: [
+        {
+          label: '单核能效',
+          data: latestByBrand.map(c => c.efficiency.scPerW),
+          backgroundColor: latestByBrand.map(c => getBrandColor(c.brand).bg),
+          borderColor: latestByBrand.map(c => getBrandColor(c.brand).border),
+          borderWidth: 2, borderRadius: 8
+        },
+        {
+          label: '多核能效 (÷3)',
+          data: latestByBrand.map(c => c.efficiency.mcPerW / 3),
+          backgroundColor: latestByBrand.map(c => getBrandColor(c.brand).bg.replace('0.7', '0.3')),
+          borderColor: latestByBrand.map(c => getBrandColor(c.brand).border),
+          borderWidth: 2, borderRadius: 8
+        }
+      ]
+    },
+    options: CHART_DEFAULTS
+  });
+}
+
+// ═══════════════════════════════════════════════
+// TIMELINE PAGE
+// ═══════════════════════════════════════════════
+function renderTimeline() {
+  const years = [...new Set(SOC_DATA.map(c => c.year))].sort();
+
+  // CPU performance timeline
+  destroyChart('timeline');
+  chartInstances['timeline'] = new Chart(document.getElementById('chartTimeline'), {
+    type: 'line',
+    data: {
+      labels: years,
+      datasets: BRAND_ORDER.map(brand => {
+        const chips = SOC_DATA.filter(c => c.brand === brand).sort((a,b) => a.year - b.year);
+        return {
+          label: BRAND_COLORS[brand].label,
+          data: chips.map(c => ({ x: c.year, y: c.benchmarks.gb6_sc })),
+          borderColor: BRAND_COLORS[brand].border,
+          backgroundColor: BRAND_COLORS[brand].bg.replace('0.7', '0.1'),
+          tension: 0.3, pointRadius: 6, pointHoverRadius: 10, borderWidth: 3, fill: true
+        };
+      })
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { type: 'linear', ticks: { color: '#9da3b8', stepSize: 1 }, grid: { color: 'rgba(53,58,79,0.5)' } },
+        y: { title: { display: true, text: 'GB6 单核', color: '#9da3b8' }, ticks: { color: '#9da3b8' }, grid: { color: 'rgba(53,58,79,0.5)' } }
+      },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        tooltip: {
+          ...CHART_DEFAULTS.plugins.tooltip,
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.raw.y} (${ctx.raw.x})`
+          }
+        }
+      }
+    }
+  });
+
+  // GPU performance timeline
+  destroyChart('timelineGPU');
+  chartInstances['timelineGPU'] = new Chart(document.getElementById('chartTimelineGPU'), {
+    type: 'line',
+    data: {
+      labels: years,
+      datasets: BRAND_ORDER.map(brand => {
+        const chips = SOC_DATA.filter(c => c.brand === brand).sort((a,b) => a.year - b.year);
+        return {
+          label: BRAND_COLORS[brand].label,
+          data: chips.map(c => ({ x: c.year, y: c.benchmarks.gpu })),
+          borderColor: BRAND_COLORS[brand].border,
+          backgroundColor: BRAND_COLORS[brand].bg.replace('0.7', '0.1'),
+          tension: 0.3, pointRadius: 6, pointHoverRadius: 10, borderWidth: 3, fill: true
+        };
+      })
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { type: 'linear', ticks: { color: '#9da3b8', stepSize: 1 }, grid: { color: 'rgba(53,58,79,0.5)' } },
+        y: { title: { display: true, text: 'GPU 跑分', color: '#9da3b8' }, ticks: { color: '#9da3b8' }, grid: { color: 'rgba(53,58,79,0.5)' } }
+      }
+    }
+  });
+
+  // Timeline table
+  const table = document.getElementById('timelineTable');
+  const allYears = [...new Set(SOC_DATA.map(c => c.year))].sort((a,b) => b - a);
+  table.innerHTML = `
+    <thead><tr>
+      <th>年份</th>
+      ${BRAND_ORDER.map(b => `<th><span class="badge ${getBadgeClass(b)}">${BRAND_COLORS[b].label}</span></th>`).join('')}
+    </tr></thead>
+    <tbody>
+      ${allYears.map(y => `<tr>
+        <td><strong>${y}</strong></td>
+        ${BRAND_ORDER.map(b => {
+          const chip = SOC_DATA.find(c => c.brand === b && c.year === y);
+          if (!chip) return '<td class="text-muted">—</td>';
+          return `<td>
+            <div style="font-weight:600;">${chip.name}</div>
+            <div style="font-size:0.8rem;color:var(--text2);">${chip.process} · SC:${chip.benchmarks.gb6_sc} · MC:${chip.benchmarks.gb6_mc}</div>
+          </td>`;
+        }).join('')}
+      </tr>`).join('')}
+    </tbody>
+  `;
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+renderOverview();
+</script>
+</body>
+</html>
